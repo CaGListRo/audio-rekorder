@@ -1,24 +1,36 @@
 import pyaudio
 import threading
 import wave
+from typing import Final, TypeVar
 
-def list_devices(p):
-    """Listet alle Aufnahmegeräte auf, die mehr als 0 Kanäle unterstützen."""
+Audio = TypeVar("Audio")
+
+def list_devices(p: pyaudio.PyAudio) -> list[tuple[int, str]]:
+    """
+    Listet alle Aufnahmegeräte auf, die mehr als 0 Kanäle unterstützen.
+    Args:
+    p (pyaudio.PyAudio): Das PyAudio-Objekt.
+    """
     print("Verfügbare Aufnahmegeräte (nur mit > 0 Kanälen):")
-    valid_devices = []
+    valid_devices: list[tuple[int, str]] = []
     for i in range(p.get_device_count()):
-        info = p.get_device_info_by_index(i)
+        info: dict[int | float] = p.get_device_info_by_index(i)
         if info['maxInputChannels'] > 0:
             valid_devices.append((len(valid_devices) + 1, i, info['name'], info['maxInputChannels']))
             print(f"Index {len(valid_devices)}: {info['name']} (Kanäle: {info['maxInputChannels']})")
     return valid_devices
 
-def record_audio(device_index, channels):
-    """Zeichnet Audio vom ausgewählten Gerät auf."""
+def record_audio(device_index: int, channels: int) -> None:
+    """
+    Zeichnet Audio vom ausgewählten Gerät auf.
+    Args:
+    device_index (int): Der Index des Geräts.
+    channels (int): Die Anzahl der Kanäle.
+    """
     global recording
 
     # PyAudio-Instanz erstellen
-    p = pyaudio.PyAudio()
+    p: pyaudio.PyAudio = pyaudio.PyAudio()
 
     # Aufzeichnungs-Stream starten
     stream = p.open(format=FORMAT,
@@ -30,12 +42,13 @@ def record_audio(device_index, channels):
 
     print("Aufnahme startet...")
 
-    frames = []
+    frames: list[Audio] = []
 
     # Aufnahmeprozess
     while recording:
         data = stream.read(CHUNK)
         frames.append(data)
+
 
     print("Aufnahme beendet.")
 
@@ -55,32 +68,32 @@ def record_audio(device_index, channels):
 
 if __name__ == "__main__":
     # Einstellungen
-    CHUNK = 1024
-    FORMAT = pyaudio.paInt16
-    RATE = 44100
-    OUTPUT_FILE = "output.wav"
+    CHUNK: Final[int] = 1024
+    FORMAT: Final[int] = pyaudio.paInt16
+    RATE: Final[int] = 44100
+    OUTPUT_FILE: Final[str] = "output.wav"
 
     # PyAudio-Instanz erstellen
-    p = pyaudio.PyAudio()
+    p: pyaudio.PyAudio = pyaudio.PyAudio()
 
     # Liste der verfügbaren Geräte
-    valid_devices = list_devices(p)
+    valid_devices: list[tuple[int, str]] | None = list_devices(p)
 
     # Überprüfen, ob gültige Geräte verfügbar sind
     if not valid_devices:
         print("Keine gültigen Aufnahmegeräte mit mehr als 0 Kanälen gefunden.")
     else:
         # Auswahl des Geräts durch den Benutzer
-        user_choice = int(input("Gib den Index des gewünschten Aufnahmegeräts ein: "))
-        selected_device = valid_devices[user_choice - 1]
-        device_index = selected_device[1]
-        channels = selected_device[3]
+        user_choice: int = int(input("Gib den Index des gewünschten Aufnahmegeräts ein: "))
+        selected_device: int = valid_devices[user_choice - 1]
+        device_index: int = selected_device[1]
+        channels: int = selected_device[3]
 
         # Globale Variable zum Steuern der Aufnahme
-        recording = True
+        recording: bool = True
 
         # Aufnahme in einem separaten Thread starten
-        recording_thread = threading.Thread(target=record_audio, args=(device_index, channels))
+        recording_thread: threading.Thread = threading.Thread(target=record_audio, args=(device_index, channels))
         recording_thread.start()
 
         # Auf Eingabe warten, um die Aufnahme zu stoppen
